@@ -4,6 +4,7 @@ import { config } from './config/env';
 import authRoutes from './routes/auth';
 import credentialRoutes from './routes/credentials';
 import adminRoutes from './routes/admin';
+import matchRoutes from './routes/match';
 
 const app = express();
 
@@ -13,6 +14,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/credentials', credentialRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/match', matchRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', appId: config.appId });
