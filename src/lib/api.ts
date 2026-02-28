@@ -79,3 +79,20 @@ export async function claimCredential(id: string, wallet: string) {
     method: 'POST',
   }, wallet);
 }
+
+export async function matchResume(formData: FormData, wallet: string) {
+  const response = await fetch(`${API_URL}/api/match/resume`, {
+    method: 'POST',
+    headers: {
+      'x-wallet-address': wallet,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Match failed');
+  }
+
+  return response.json();
+}

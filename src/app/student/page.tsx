@@ -8,9 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { WalletConnect } from '@/components/WalletConnect';
-import { uploadCredential, getMyRequests, getPendingClaims, claimCredential } from '@/lib/api';
+import { uploadCredential, getMyRequests, getPendingClaims, claimCredential, matchResume } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, Upload, CheckCircle, XCircle, Clock, ExternalLink, Gift } from 'lucide-react';
+import { Shield, Upload, CheckCircle, XCircle, Clock, ExternalLink, Gift, Sparkles, UserPlus } from 'lucide-react';
 import algosdk from 'algosdk';
 
 // Algorand testnet node for sending opt-in transactions
@@ -29,6 +29,9 @@ export default function StudentPage() {
   const [degreeName, setDegreeName] = useState('');
   const [graduationYear, setGraduationYear] = useState('');
   const [file, setFile] = useState<File | null>(null);
+
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [matches, setMatches] = useState<any[]>([]);
 
   const { data: requests, isLoading } = useQuery({
     queryKey: ['my-requests', activeAddress],
@@ -104,6 +107,24 @@ export default function StudentPage() {
     },
     onError: (error: Error) => {
       toast({ title: 'Claim Failed', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const matchMutation = useMutation({
+    mutationFn: async () => {
+      if (!resumeFile || !activeAddress) throw new Error('Missing resume file');
+
+      const formData = new FormData();
+      formData.append('resume', resumeFile);
+
+      return matchResume(formData, activeAddress);
+    },
+    onSuccess: (data) => {
+      toast({ title: 'Success', description: 'Successfully analyzed resume and matched with alumni!' });
+      setMatches(data.matches || []);
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -352,6 +373,99 @@ export default function StudentPage() {
                   ))}
                 </div>
               )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* AI Mentor Matcher Section */}
+        <div className="mt-12">
+          <div className="mb-6">
+            <h2 className="text-3xl font-extrabold text-gray-900 flex items-center gap-2">
+              <Sparkles className="h-8 w-8 text-indigo-600" />
+              AI Mentor Matcher
+            </h2>
+            <p className="text-gray-600 mt-2">Upload your resume and let our Gemini AI find the perfect alumni mentors based on your skills and background.</p>
+          </div>
+
+          <Card className="border-2 border-indigo-100 shadow-lg">
+            <CardContent className="p-6">
+              <div className="grid lg:grid-cols-3 gap-8">
+                {/* Upload Section */}
+                <div className="col-span-1 space-y-4 lg:border-r border-gray-100 pr-4">
+                  <h3 className="text-xl font-bold text-gray-800">1. Upload Resume</h3>
+                  <p className="text-sm text-gray-500">Must be a PDF document containing your work experience and skills.</p>
+
+                  <div className="mt-4">
+                    <Label htmlFor="resumeDocument" className="sr-only">Resume (PDF)</Label>
+                    <Input
+                      id="resumeDocument"
+                      type="file"
+                      accept=".pdf"
+                      onChange={(e) => setResumeFile(e.target.files?.[0] || null)}
+                      className="cursor-pointer"
+                    />
+                  </div>
+
+                  <Button
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 mt-4"
+                    onClick={() => matchMutation.mutate()}
+                    disabled={!resumeFile || matchMutation.isPending}
+                  >
+                    {matchMutation.isPending ? 'Analyzing with AI...' : 'Find Matches'}
+                  </Button>
+                </div>
+
+                {/* Results Section */}
+                <div className="col-span-2">
+                  <h3 className="text-xl font-bold text-gray-800 mb-4">2. Your AI Matches</h3>
+
+                  {!matches || matches.length === 0 ? (
+                    <div className="h-40 flex items-center justify-center bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                      <p className="text-gray-500 text-center">
+                        {matchMutation.isPending ? 'Gemini AI is reading your resume...' : 'Upload your resume to see your top matches.'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {matches.map((match: any, idx: number) => (
+                        <div key={idx} className="bg-white p-5 rounded-xl border border-indigo-100 shadow-sm hover:shadow-md transition-shadow">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <h4 className="font-bold text-lg text-gray-900">{match.alumnus?.name}</h4>
+                              <p className="text-sm font-medium text-indigo-600">{match.alumnus?.status}</p>
+                            </div>
+                            <div className="flex flex-col items-end gap-2">
+                              {match.matchPercentage && (
+                                <div className="bg-green-100 text-green-800 text-xs font-bold px-2.5 py-1 rounded-full border border-green-200">
+                                  {match.matchPercentage}% Match
+                                </div>
+                              )}
+                              <Button size="sm" variant="outline" className="gap-1 text-indigo-700 border-indigo-200 hover:bg-indigo-50">
+                                <UserPlus className="h-4 w-4" /> Connect
+                              </Button>
+                            </div>
+                          </div>
+
+                          <div className="bg-indigo-50/50 p-3 rounded-lg mt-3">
+                            <p className="text-sm text-gray-800 flex items-start gap-2">
+                              <Sparkles className="h-5 w-5 text-indigo-500 shrink-0 mt-0.5" />
+                              <span className="italic">{match.reason}</span>
+                            </p>
+                          </div>
+
+                          <div className="flex flex-wrap gap-2 mt-4">
+                            {match.alumnus?.expertise.map((skill: string, sIdx: number) => (
+                              <span key={sIdx} className="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full font-medium">
+                                {skill}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
