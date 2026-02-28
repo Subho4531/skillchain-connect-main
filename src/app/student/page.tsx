@@ -327,7 +327,7 @@ export default function StudentPage() {
                             </div>
                             <div className="pt-2 flex gap-4">
                               <a
-                                href={`https://testnet.algoexplorer.io/asset/${req.credentials[0].nft_asset_id}`}
+                                href={`https://lora.algokit.io/testnet/asset/${req.credentials[0].nft_asset_id}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-xs text-blue-600 hover:underline flex items-center gap-1 font-medium bg-blue-50 px-2 py-1 rounded"
@@ -336,7 +336,7 @@ export default function StudentPage() {
                               </a>
                               {req.credentials[0].issued_tx_hash && (
                                 <a
-                                  href={`https://testnet.algoexplorer.io/tx/${req.credentials[0].issued_tx_hash}`}
+                                  href={`https://lora.algokit.io/testnet/tx/${req.credentials[0].issued_tx_hash}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-xs text-indigo-600 hover:underline flex items-center gap-1 font-medium bg-indigo-50 px-2 py-1 rounded"
