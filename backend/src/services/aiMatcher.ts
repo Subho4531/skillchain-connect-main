@@ -24,6 +24,7 @@ export async function matchResumeToAlumni(resumeText: string) {
     
     Return your response as a JSON array of objects, where each object has:
     - "alumnusId": The integer ID of the matched alumnus.
+    - "matchPercentage": An integer between 0 and 100 representing how closely the student's background matches this alumnus.
     - "reason": A brief, compelling 1-2 sentence explanation of why this alumnus is a great match for the student based specifically on their resume and the alumnus's expertise.
     
     DO NOT wrap the response in markdown blocks like \`\`\`json. Just return the raw JSON array string.

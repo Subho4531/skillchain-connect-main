@@ -434,9 +434,16 @@ export default function StudentPage() {
                               <h4 className="font-bold text-lg text-gray-900">{match.alumnus?.name}</h4>
                               <p className="text-sm font-medium text-indigo-600">{match.alumnus?.status}</p>
                             </div>
-                            <Button size="sm" variant="outline" className="gap-1 text-indigo-700 border-indigo-200 hover:bg-indigo-50">
-                              <UserPlus className="h-4 w-4" /> Connect
-                            </Button>
+                            <div className="flex flex-col items-end gap-2">
+                              {match.matchPercentage && (
+                                <div className="bg-green-100 text-green-800 text-xs font-bold px-2.5 py-1 rounded-full border border-green-200">
+                                  {match.matchPercentage}% Match
+                                </div>
+                              )}
+                              <Button size="sm" variant="outline" className="gap-1 text-indigo-700 border-indigo-200 hover:bg-indigo-50">
+                                <UserPlus className="h-4 w-4" /> Connect
+                              </Button>
+                            </div>
                           </div>
 
                           <div className="bg-indigo-50/50 p-3 rounded-lg mt-3">
