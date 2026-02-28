@@ -1,0 +1,16 @@
+.text-block {
+    max-width: 1000px;
+    color: #fff;
+    cursor: default;
+}
+
+.char {
+    will-change: transform;
+    display: inline-block;
+}
+
+/* Ensure Outfit font is applied if the class is present */
+.outfit-bold p {
+    font-family: "Outfit", sans-serif;
+    font-weight: 700;
+}
