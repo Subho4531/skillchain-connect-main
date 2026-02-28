@@ -12,7 +12,7 @@ export class NFTService {
     documentCid: string;
     documentHash: string;
   }): Promise<{ assetId: number; txHash: string; metadataCid: string; metadataHash: string }> {
-    
+
     // Step 1: Create metadata JSON
     const metadata = {
       credential_id: params.credentialId,
@@ -35,7 +35,9 @@ export class NFTService {
     const suggestedParams = await algodClient.getTransactionParams().do();
 
     // Step 5: Create ASA
-    const metadataHashBuffer = Buffer.from(metadataHash, 'hex').slice(0, 32);
+    const hashBytes = Buffer.from(metadataHash, 'hex');
+    const metadataHashBuffer = new Uint8Array(32);
+    metadataHashBuffer.set(hashBytes.subarray(0, 32));
 
     const assetCreateTxn = algosdk.makeAssetCreateTxnWithSuggestedParamsFromObject({
       from: collegeAdmin.addr,
@@ -63,18 +65,27 @@ export class NFTService {
 
     console.log(`✅ NFT Created: Asset ID ${assetId}`);
 
-    // Step 8: Opt-in student wallet (they need to do this themselves)
-    // We'll transfer after they opt-in
-
-    // Step 9: Transfer NFT to student
-    await this.transferNFT(assetId, collegeAdmin.addr, params.studentWallet);
-
+    // NFT stays in admin wallet until student claims it
     return {
       assetId,
       txHash: txId,
       metadataCid,
       metadataHash,
     };
+  }
+
+  /**
+   * Check whether a wallet has opted in to a given ASA.
+   * Returns true if the account holds the asset (even with 0 balance).
+   */
+  async checkOptIn(walletAddress: string, assetId: number): Promise<boolean> {
+    try {
+      const accountInfo = await algodClient.accountInformation(walletAddress).do();
+      const assets: Array<{ 'asset-id': number }> = accountInfo['assets'] ?? [];
+      return assets.some((a) => a['asset-id'] === assetId);
+    } catch {
+      return false;
+    }
   }
 
   async transferNFT(assetId: number, from: string, to: string): Promise<string> {

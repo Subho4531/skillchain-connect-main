@@ -73,6 +73,71 @@ router.get('/my-requests', authenticateWallet, requireRole('STUDENT'), async (re
   }
 });
 
+// Student: Get pending claims (MINTED NFTs awaiting student opt-in + transfer)
+router.get('/pending-claims', authenticateWallet, requireRole('STUDENT'), async (req: AuthRequest, res) => {
+  try {
+    const { data, error } = await mockDb.getMintedRequestsByWallet(req.wallet!);
+    if (error) throw error;
+    res.json({ data: data || [] });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Student: Claim NFT (after opt-in, triggers transfer from admin → student)
+router.post('/claim/:id', authenticateWallet, requireRole('STUDENT'), async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+
+    // Get the request
+    const { data: request, error: fetchError } = await mockDb.getCredentialRequestById(id);
+    if (fetchError || !request || request.status !== 'MINTED') {
+      return res.status(404).json({ error: 'Request not found or not ready for claim' });
+    }
+
+    // Verify the student owns this request
+    if (request.student_wallet !== req.wallet) {
+      return res.status(403).json({ error: 'Not authorized to claim this credential' });
+    }
+
+    // Get the credential record to find the assetId
+    const { data: allRequests } = await mockDb.getCredentialRequestsByWallet(req.wallet!);
+    const matchedRequest = allRequests?.find((r: any) => r.id === id);
+    const credential = matchedRequest?.credentials?.[0];
+
+    if (!credential) {
+      return res.status(404).json({ error: 'Credential record not found' });
+    }
+
+    const assetId = credential.nft_asset_id;
+
+    // Verify the student has opted in
+    const hasOptedIn = await nftService.checkOptIn(req.wallet!, assetId);
+    if (!hasOptedIn) {
+      return res.status(400).json({
+        error: 'You must opt-in to the asset before claiming',
+        code: 'OPT_IN_REQUIRED',
+        assetId,
+      });
+    }
+
+    // Transfer NFT to student
+    const txHash = await nftService.transferNFT(assetId, '', req.wallet!);
+
+    // Update status to APPROVED
+    await mockDb.updateCredentialRequest(id, { status: 'APPROVED' });
+
+    res.json({
+      success: true,
+      assetId,
+      txHash,
+    });
+  } catch (error: any) {
+    console.error('Claim error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // College Admin: Get pending requests
 router.get('/pending', authenticateWallet, requireRole('COLLEGE_ADMIN'), async (req: AuthRequest, res) => {
   try {
@@ -92,7 +157,7 @@ router.get('/pending', authenticateWallet, requireRole('COLLEGE_ADMIN'), async (
   }
 });
 
-// College Admin: Approve credential
+// College Admin: Approve credential (mint only — student claims later)
 router.post('/approve/:id', authenticateWallet, requireRole('COLLEGE_ADMIN'), async (req: AuthRequest, res) => {
   try {
     // Verify wallet matches on-chain college admin
@@ -110,7 +175,7 @@ router.post('/approve/:id', authenticateWallet, requireRole('COLLEGE_ADMIN'), as
       return res.status(404).json({ error: 'Request not found or already processed' });
     }
 
-    // Mint NFT
+    // Mint NFT (no transfer — stays in admin wallet)
     const nftResult = await nftService.mintCredentialNFT({
       credentialId: request.credential_id,
       studentWallet: request.student_wallet,
@@ -131,8 +196,8 @@ router.post('/approve/:id', authenticateWallet, requireRole('COLLEGE_ADMIN'), as
 
     if (credError) throw credError;
 
-    // Update request status
-    const { error: updateError } = await mockDb.updateCredentialRequest(id, { status: 'APPROVED' });
+    // Update request status to MINTED (not APPROVED yet — student must claim)
+    const { error: updateError } = await mockDb.updateCredentialRequest(id, { status: 'MINTED' });
 
     if (updateError) throw updateError;
 
@@ -140,6 +205,7 @@ router.post('/approve/:id', authenticateWallet, requireRole('COLLEGE_ADMIN'), as
       success: true,
       assetId: nftResult.assetId,
       txHash: nftResult.txHash,
+      message: 'NFT minted successfully. Student can now claim it from their dashboard.',
     });
   } catch (error: any) {
     console.error('Approval error:', error);
