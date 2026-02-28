@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from './ui/dropdown-menu';
 import { Wallet, LogOut } from 'lucide-react';
+import NeoButton from './ui/NeoButton';
 
 export function WalletConnect() {
   const { activeAddress, isConnected, connectWallet, disconnectWallet } = useWalletContext();
@@ -33,13 +34,15 @@ export function WalletConnect() {
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="gap-2">
-            <Wallet className="h-4 w-4" />
-            {activeAddress.slice(0, 6)}...{activeAddress.slice(-4)}
-          </Button>
+          <div>
+            <NeoButton hoverText="Wallet" className="scale-90 origin-right">
+              <Wallet className="h-4 w-4" />
+              {activeAddress.slice(0, 6)}...{activeAddress.slice(-4)}
+            </NeoButton>
+          </div>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={handleDisconnect} className="gap-2 cursor-pointer">
+        <DropdownMenuContent align="end" className="bg-black border-white/10 text-white">
+          <DropdownMenuItem onClick={handleDisconnect} className="gap-2 cursor-pointer hover:bg-white hover:text-black">
             <LogOut className="h-4 w-4" />
             Disconnect
           </DropdownMenuItem>
@@ -49,12 +52,12 @@ export function WalletConnect() {
   }
 
   return (
-    <Button
+    <NeoButton
       onClick={handleConnect}
-      className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+      hoverText="Connect"
     >
       <Wallet className="h-4 w-4" />
       Connect Wallet
-    </Button>
+    </NeoButton>
   );
 }

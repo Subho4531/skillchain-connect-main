@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useWalletContext } from '@/contexts/WalletContext';
+import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,8 +11,11 @@ import { Label } from '@/components/ui/label';
 import { WalletConnect } from '@/components/WalletConnect';
 import { uploadCredential, getMyRequests, getPendingClaims, claimCredential, matchResume } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import { Shield, Upload, CheckCircle, XCircle, Clock, ExternalLink, Gift, ArrowRight } from 'lucide-react';
 import { Shield, Upload, CheckCircle, XCircle, Clock, ExternalLink, Gift, Sparkles, UserPlus } from 'lucide-react';
 import algosdk from 'algosdk';
+import { Ripple } from '@/components/ui/ripple';
+import NeoButton from '@/components/ui/NeoButton';
 
 // Algorand testnet node for sending opt-in transactions
 const algodClient = new algosdk.Algodv2(
@@ -21,6 +25,7 @@ const algodClient = new algosdk.Algodv2(
 );
 
 export default function StudentPage() {
+  const router = useRouter();
   const { activeAddress, isConnected, signTransactions } = useWalletContext();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -130,12 +135,21 @@ export default function StudentPage() {
 
   if (!isConnected) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Connect Wallet</CardTitle>
+      <div className="min-h-screen flex items-center justify-center bg-black text-white relative overflow-hidden">
+        <Ripple />
+        <Card className="relative z-10 w-full max-w-md bg-zinc-900 border-4 border-zinc-800 shadow-[10px_10px_0px_0px_rgba(255,255,255,0.05)] pt-6">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-3 rounded-2xl shadow-lg">
+                <Shield className="h-10 w-10 text-white" />
+              </div>
+            </div>
+            <CardTitle className="text-3xl font-black uppercase tracking-tighter outfit-bold">
+              Student Access
+            </CardTitle>
+            <p className="text-zinc-400 mt-2">Connect your wallet to manage credentials</p>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex justify-center pb-10">
             <WalletConnect />
           </CardContent>
         </Card>
@@ -144,62 +158,79 @@ export default function StudentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="border-b bg-white shadow-sm">
+    <div className="relative min-h-screen flex flex-col bg-black text-white overflow-x-hidden">
+      <Ripple />
+      <nav className="absolute top-0 left-0 w-full z-50 border-b border-white/10 bg-transparent">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <Shield className="h-6 w-6 text-blue-600" />
-            <span className="text-xl font-bold">CredChain - Student</span>
+          <div className="flex items-center gap-3">
+            <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-2 rounded-xl text-white">
+              <Shield className="h-7 w-7" />
+            </div>
+            <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              CredChain
+            </span>
+            <span className="text-xs font-black uppercase tracking-widest text-zinc-500 bg-zinc-800/50 px-2 py-1 rounded ml-2">
+              Student
+            </span>
           </div>
           <div className="flex items-center gap-4">
-            <Button variant="ghost" asChild>
-              <a href="/">Home</a>
-            </Button>
-            <Button variant="ghost" className="text-indigo-600 font-medium bg-indigo-50 hover:bg-indigo-100" asChild>
-              <a href="/alumni">Alumni Network</a>
-            </Button>
+            <NeoButton
+              onClick={() => router.push('/')}
+              hoverText="Back"
+              className="scale-90"
+            >
+              Home
+            </NeoButton>
+            <NeoButton
+              onClick={() => router.push('/alumni')}
+              hoverText="Explore"
+              className="scale-90 whitespace-nowrap"
+            >
+              Alumni Network
+            </NeoButton>
             <WalletConnect />
           </div>
         </div>
       </nav>
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="relative z-10 container mx-auto px-4 pt-32 pb-8">
         {/* Pending Claims Banner */}
         {pendingClaims?.data?.length > 0 && (
-          <Card className="mb-8 border-2 border-amber-400 bg-amber-50">
+          <Card className="mb-12 border-4 border-amber-500/50 bg-zinc-900 shadow-[10px_10px_0px_0px_rgba(245,158,11,0.1)] transition-all duration-300 hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[15px_15px_0px_0px_#f59e0b] hover:border-amber-500">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-amber-800">
-                <Gift className="h-5 w-5" />
-                Pending NFT Claims ({pendingClaims.data.length})
+              <CardTitle className="flex items-center gap-2 text-amber-500 font-black uppercase tracking-tighter outfit-bold text-2xl">
+                <Gift className="h-6 w-6" />
+                NFT Claims Ready ({pendingClaims.data.length})
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-amber-700 mb-4">
-                Your credentials have been approved! Click &quot;Claim NFT&quot; to opt-in and receive your credential NFT in one step.
+              <p className="text-sm text-zinc-400 mb-6">
+                Your credentials have been approved! Opt-in to the asset and claim your decentralized NFT.
               </p>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {pendingClaims.data.map((claim: any) => (
-                  <div key={claim.id} className="flex items-center justify-between p-4 bg-white rounded-lg border border-amber-200">
+                  <div key={claim.id} className="flex items-center justify-between p-6 bg-black/40 rounded-xl border-2 border-zinc-800 hover:border-amber-500/50 transition-colors">
                     <div>
-                      <p className="font-semibold text-gray-900">{claim.degree_name}</p>
-                      <p className="text-sm text-gray-500">ID: {claim.credential_id}</p>
+                      <p className="font-bold text-white text-lg">{claim.degree_name}</p>
+                      <p className="text-sm text-zinc-500">ID: {claim.credential_id}</p>
                       {claim.credentials?.[0] && (
-                        <p className="text-xs text-gray-400 font-mono mt-1">
+                        <p className="text-xs text-zinc-600 font-mono mt-1">
                           Asset ID: {claim.credentials[0].nft_asset_id}
                         </p>
                       )}
                     </div>
-                    <Button
+                    <NeoButton
                       onClick={() => claimMutation.mutate({
                         requestId: claim.id,
                         assetId: claim.credentials?.[0]?.nft_asset_id,
                       })}
                       disabled={claimMutation.isPending}
-                      className="bg-amber-600 hover:bg-amber-700 text-white"
+                      hoverText="Claim!"
+                      className="scale-90"
                     >
                       <Gift className="h-4 w-4 mr-2" />
-                      {claimMutation.isPending ? 'Claiming...' : 'Claim NFT'}
-                    </Button>
+                      {claimMutation.isPending ? 'Processing...' : 'Claim NFT'}
+                    </NeoButton>
                   </div>
                 ))}
               </div>
@@ -207,13 +238,13 @@ export default function StudentPage() {
           </Card>
         )}
 
-        <div className="grid lg:grid-cols-2 gap-8">
+        <div className="grid lg:grid-cols-2 gap-12">
           {/* Upload Form */}
-          <Card>
+          <Card className="bg-zinc-900 border-4 border-zinc-800 shadow-[10px_10px_0px_0px_rgba(255,255,255,0.05)] transition-all duration-300 hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[15px_15px_0px_0px_#ffffff] hover:border-white">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Upload className="h-5 w-5" />
-                Submit Credential Request
+              <CardTitle className="flex items-center gap-2 text-white font-black uppercase tracking-tighter outfit-bold text-2xl leading-none">
+                <Upload className="h-6 w-6 text-blue-500" />
+                New Request
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -222,32 +253,34 @@ export default function StudentPage() {
                   e.preventDefault();
                   uploadMutation.mutate();
                 }}
-                className="space-y-4"
+                className="space-y-6"
               >
-                <div>
-                  <Label htmlFor="credentialId">Credential ID</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="credentialId" className="text-zinc-400 font-bold uppercase text-xs tracking-widest">Credential ID</Label>
                   <Input
                     id="credentialId"
                     value={credentialId}
                     onChange={(e) => setCredentialId(e.target.value)}
                     placeholder="e.g., CRED-2024-001"
                     required
+                    className="bg-black/50 border-zinc-800 focus:border-blue-500 text-white h-12"
                   />
                 </div>
 
-                <div>
-                  <Label htmlFor="degreeName">Degree Name</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="degreeName" className="text-zinc-400 font-bold uppercase text-xs tracking-widest">Degree Name</Label>
                   <Input
                     id="degreeName"
                     value={degreeName}
                     onChange={(e) => setDegreeName(e.target.value)}
                     placeholder="e.g., Bachelor of Science"
                     required
+                    className="bg-black/50 border-zinc-800 focus:border-blue-500 text-white h-12"
                   />
                 </div>
 
-                <div>
-                  <Label htmlFor="graduationYear">Graduation Year</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="graduationYear" className="text-zinc-400 font-bold uppercase text-xs tracking-widest">Graduation Year</Label>
                   <Input
                     id="graduationYear"
                     type="number"
@@ -255,119 +288,141 @@ export default function StudentPage() {
                     onChange={(e) => setGraduationYear(e.target.value)}
                     placeholder="e.g., 2024"
                     required
+                    className="bg-black/50 border-zinc-800 focus:border-blue-500 text-white h-12"
                   />
                 </div>
 
-                <div>
-                  <Label htmlFor="document">Document (PDF)</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="document" className="text-zinc-400 font-bold uppercase text-xs tracking-widest">Document (PDF)</Label>
                   <Input
                     id="document"
                     type="file"
                     accept=".pdf"
                     onChange={(e) => setFile(e.target.files?.[0] || null)}
                     required
+                    className="bg-black/50 border-zinc-800 focus:border-blue-500 text-white cursor-pointer h-12 pt-2"
                   />
                 </div>
 
-                <Button type="submit" className="w-full" disabled={uploadMutation.isPending}>
-                  {uploadMutation.isPending ? 'Uploading...' : 'Submit Request'}
-                </Button>
+                <div className="pt-2">
+                  <NeoButton
+                    type="submit"
+                    className="w-full"
+                    disabled={uploadMutation.isPending}
+                    hoverText="Send Request"
+                  >
+                    {uploadMutation.isPending ? 'Uploading...' : 'Submit Request'}
+                  </NeoButton>
+                </div>
               </form>
             </CardContent>
           </Card>
 
           {/* My Requests */}
-          <Card>
+          <Card className="bg-zinc-900 border-4 border-zinc-800 shadow-[10px_10px_0px_0px_rgba(255,255,255,0.05)] transition-all duration-300 hover:-translate-x-1 hover:-translate-y-1 hover:shadow-[15px_15px_0px_0px_#ffffff] hover:border-white">
             <CardHeader>
-              <CardTitle>My Requests</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-white font-black uppercase tracking-tighter outfit-bold text-2xl leading-none">
+                <Clock className="h-6 w-6 text-yellow-500" />
+                Submission History
+              </CardTitle>
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <p className="text-gray-500">Loading...</p>
+                <div className="flex flex-col items-center py-12 text-zinc-500">
+                  <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mb-4"></div>
+                  <p>Fetching your credentials...</p>
+                </div>
               ) : requests?.data?.length === 0 ? (
-                <p className="text-gray-500">No requests yet</p>
+                <div className="text-center py-12 border-2 border-dashed border-zinc-800 rounded-xl">
+                  <p className="text-zinc-500">No requests submitted yet</p>
+                </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {requests?.data?.map((req: any) => (
-                    <Card key={req.id} className="border-2">
-                      <CardContent className="pt-6">
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <p className="text-xl font-bold text-gray-900 border-b-2 border-blue-500 inline-block pb-1">
-                              {req.degree_name}
-                            </p>
-                            <p className="text-sm text-gray-500 mt-2">ID: {req.credential_id}</p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {req.status === 'PENDING' && (
-                              <>
-                                <Clock className="h-4 w-4 text-yellow-600" />
-                                <span className="text-sm text-yellow-600">Pending</span>
-                              </>
-                            )}
-                            {req.status === 'MINTED' && (
-                              <>
-                                <Gift className="h-4 w-4 text-amber-600" />
-                                <span className="text-sm text-amber-600">Ready to Claim</span>
-                              </>
-                            )}
-                            {req.status === 'APPROVED' && (
-                              <>
-                                <CheckCircle className="h-4 w-4 text-green-600" />
-                                <span className="text-sm text-green-600">Approved</span>
-                              </>
-                            )}
-                            {req.status === 'REJECTED' && (
-                              <>
-                                <XCircle className="h-4 w-4 text-red-600" />
-                                <span className="text-sm text-red-600">Rejected</span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-
-                        {req.credentials?.[0] && (
-                          <div className="mt-4 p-4 bg-green-50 rounded-lg space-y-2 border border-green-200">
-                            <p className="text-sm font-semibold text-green-900 flex items-center gap-2">
-                              <Shield className="h-4 w-4" />
-                              Secured as NFT on Algorand
-                            </p>
-                            <div className="space-y-1">
-                              <p className="text-xs text-gray-600 flex justify-between">
-                                <span className="font-medium">Asset ID:</span>
-                                <span className="font-mono">{req.credentials[0].nft_asset_id}</span>
+                    <Card key={req.id} className="bg-black/40 border-2 border-zinc-800 hover:border-zinc-600 transition-colors overflow-hidden">
+                      <CardContent className="p-0">
+                        <div className="p-6">
+                          <div className="flex items-start justify-between mb-4">
+                            <div>
+                              <p className="text-xl font-black text-white uppercase tracking-tight outfit-bold underline decoration-blue-500 decoration-4 underline-offset-4">
+                                {req.degree_name}
                               </p>
-                              {req.credentials[0].issued_tx_hash && (
-                                <p className="text-xs text-gray-600 flex justify-between">
-                                  <span className="font-medium">Transaction:</span>
-                                  <span className="font-mono" title={req.credentials[0].issued_tx_hash}>
-                                    {req.credentials[0].issued_tx_hash.slice(0, 12)}...{req.credentials[0].issued_tx_hash.slice(-12)}
-                                  </span>
-                                </p>
+                              <p className="text-sm text-zinc-500 mt-3 font-mono">ID: {req.credential_id}</p>
+                            </div>
+                            <div className="flex items-center">
+                              {req.status === 'PENDING' && (
+                                <span className="bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+                                  <Clock className="h-3 w-3" /> Pending
+                                </span>
+                              )}
+                              {req.status === 'MINTED' && (
+                                <span className="bg-amber-500/10 text-amber-500 border border-amber-500/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 animate-pulse">
+                                  <Gift className="h-3 w-3" /> Ready to Claim
+                                </span>
+                              )}
+                              {req.status === 'APPROVED' && (
+                                <span className="bg-green-500/10 text-green-500 border border-green-500/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+                                  <CheckCircle className="h-3 w-3" /> Approved
+                                </span>
+                              )}
+                              {req.status === 'REJECTED' && (
+                                <span className="bg-red-500/10 text-red-500 border border-red-500/20 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+                                  <XCircle className="h-3 w-3" /> Rejected
+                                </span>
                               )}
                             </div>
-                            <div className="pt-2 flex gap-4">
-                              <a
-                                href={`https://lora.algokit.io/testnet/asset/${req.credentials[0].nft_asset_id}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-blue-600 hover:underline flex items-center gap-1 font-medium bg-blue-50 px-2 py-1 rounded"
-                              >
-                                View Asset <ExternalLink className="h-3 w-3" />
-                              </a>
-                              {req.credentials[0].issued_tx_hash && (
+                          </div>
+
+                          {req.credentials?.[0] && (
+                            <div className="mt-6 border-t border-zinc-800 pt-6 space-y-4">
+                              <div className="bg-blue-500/5 border border-blue-500/10 rounded-xl p-4 space-y-3">
+                                <div className="flex items-center gap-2 text-blue-400 font-bold text-sm uppercase tracking-wider">
+                                  <Shield className="h-4 w-4" />
+                                  Algorand Asset Details
+                                </div>
+                                <div className="grid grid-cols-2 gap-4 text-xs">
+                                  <div className="space-y-1">
+                                    <p className="text-zinc-500 uppercase font-black tracking-widest">Asset ID</p>
+                                    <p className="font-mono text-white text-base">{req.credentials[0].nft_asset_id}</p>
+                                  </div>
+                                  <div className="space-y-1">
+                                    <p className="text-zinc-500 uppercase font-black tracking-widest">Status</p>
+                                    <p className="text-green-500 font-bold">VERIFIED ON-CHAIN</p>
+                                  </div>
+                                </div>
+                                {req.credentials[0].issued_tx_hash && (
+                                  <div className="space-y-1 pt-2">
+                                    <p className="text-zinc-500 uppercase font-black tracking-widest text-[10px]">Transaction Hash</p>
+                                    <p className="font-mono text-zinc-400 truncate text-[10px]" title={req.credentials[0].issued_tx_hash}>
+                                      {req.credentials[0].issued_tx_hash}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+
+                              <div className="flex gap-3">
                                 <a
-                                  href={`https://lora.algokit.io/testnet/tx/${req.credentials[0].issued_tx_hash}`}
+                                  href={`https://lora.algokit.io/testnet/asset/${req.credentials[0].nft_asset_id}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-xs text-indigo-600 hover:underline flex items-center gap-1 font-medium bg-indigo-50 px-2 py-1 rounded"
+                                  className="flex-1 bg-zinc-800 hover:bg-white hover:text-black text-white text-xs font-bold uppercase py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all duration-300"
                                 >
-                                  Tx details <ExternalLink className="h-3 w-3" />
+                                  Explorer <ExternalLink className="h-3 w-3" />
                                 </a>
-                              )}
+                                {req.credentials[0].issued_tx_hash && (
+                                  <a
+                                    href={`https://lora.algokit.io/testnet/tx/${req.credentials[0].issued_tx_hash}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex-1 bg-zinc-800 hover:bg-white hover:text-black text-white text-xs font-bold uppercase py-2.5 rounded-lg flex items-center justify-center gap-2 transition-all duration-300"
+                                  >
+                                    Transaction <ExternalLink className="h-3 w-3" />
+                                  </a>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </CardContent>
                     </Card>
                   ))}
