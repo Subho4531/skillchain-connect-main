@@ -28,8 +28,8 @@ export default function CollegeAdminPage() {
     mutationFn: ({ id }: { id: string }) => approveCredential(id, activeAccount!.address),
     onSuccess: (data) => {
       toast({
-        title: 'Success',
-        description: `NFT minted! Asset ID: ${data.assetId}`,
+        title: '✅ NFT Minted!',
+        description: `Asset ID: ${data.assetId}. The student can now claim it from their dashboard.`,
       });
       queryClient.invalidateQueries({ queryKey: ['pending-requests'] });
     },

@@ -7,7 +7,7 @@ interface CredentialRequest {
   graduation_year: number;
   document_ipfs_cid: string;
   document_hash: string;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  status: 'PENDING' | 'MINTED' | 'APPROVED' | 'REJECTED';
   rejection_reason?: string;
   created_at: string;
 }
@@ -60,7 +60,7 @@ class MockDatabase {
   async updateCredentialRequest(id: string, updates: Partial<CredentialRequest>) {
     const index = this.credentialRequests.findIndex(r => r.id === id);
     if (index === -1) return { error: { message: 'Not found' } };
-    
+
     this.credentialRequests[index] = { ...this.credentialRequests[index], ...updates };
     return { error: null };
   }
@@ -78,6 +78,16 @@ class MockDatabase {
   async checkDuplicateCredentialId(credentialId: string) {
     const existing = this.credentialRequests.find(r => r.credential_id === credentialId);
     return { data: existing || null, error: null };
+  }
+
+  async getMintedRequestsByWallet(wallet: string) {
+    const requests = this.credentialRequests
+      .filter(r => r.student_wallet === wallet && r.status === 'MINTED')
+      .map(r => ({
+        ...r,
+        credentials: this.credentials.filter(c => c.credential_request_id === r.id)
+      }));
+    return { data: requests, error: null };
   }
 }
 

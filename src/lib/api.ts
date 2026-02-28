@@ -17,8 +17,8 @@ async function apiRequest(endpoint: string, options: RequestInit = {}, wallet?: 
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Request failed');
+    const body = await response.json();
+    throw Object.assign(new Error(body.error || 'Request failed'), body);
   }
 
   return response.json();
@@ -68,4 +68,14 @@ export async function rejectCredential(id: string, reason: string, wallet: strin
 
 export async function getContractAdmins(wallet: string) {
   return apiRequest('/api/admin/contract-admins', {}, wallet);
+}
+
+export async function getPendingClaims(wallet: string) {
+  return apiRequest('/api/credentials/pending-claims', {}, wallet);
+}
+
+export async function claimCredential(id: string, wallet: string) {
+  return apiRequest(`/api/credentials/claim/${id}`, {
+    method: 'POST',
+  }, wallet);
 }

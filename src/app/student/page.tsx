@@ -8,12 +8,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { WalletConnect } from '@/components/WalletConnect';
-import { uploadCredential, getMyRequests } from '@/lib/api';
+import { uploadCredential, getMyRequests, getPendingClaims, claimCredential } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { Shield, Upload, CheckCircle, XCircle, Clock, ExternalLink } from 'lucide-react';
+import { Shield, Upload, CheckCircle, XCircle, Clock, ExternalLink, Gift } from 'lucide-react';
+import algosdk from 'algosdk';
+
+// Algorand testnet node for sending opt-in transactions
+const algodClient = new algosdk.Algodv2(
+  '',
+  'https://testnet-api.algonode.cloud',
+  443
+);
 
 export default function StudentPage() {
-  const { activeAddress, isConnected } = useWalletContext();
+  const { activeAddress, isConnected, signTransactions } = useWalletContext();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -26,6 +34,14 @@ export default function StudentPage() {
     queryKey: ['my-requests', activeAddress],
     queryFn: () => getMyRequests(activeAddress!),
     enabled: !!activeAddress && isConnected,
+  });
+
+  // Fetch MINTED credentials that need to be claimed
+  const { data: pendingClaims, isLoading: claimsLoading } = useQuery({
+    queryKey: ['pending-claims', activeAddress],
+    queryFn: () => getPendingClaims(activeAddress!),
+    enabled: !!activeAddress && isConnected,
+    refetchInterval: 10000, // Poll every 10s for new minted NFTs
   });
 
   const uploadMutation = useMutation({
@@ -50,6 +66,44 @@ export default function StudentPage() {
     },
     onError: (error: Error) => {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  // One-click claim: opt-in to ASA + call backend to transfer
+  const claimMutation = useMutation({
+    mutationFn: async ({ requestId, assetId }: { requestId: string; assetId: number }) => {
+      if (!activeAddress) throw new Error('Wallet not connected');
+
+      // Step 1: Build opt-in transaction (0-amount self-transfer)
+      const suggestedParams = await algodClient.getTransactionParams().do();
+      const optInTxn = algosdk.makeAssetTransferTxnWithSuggestedParamsFromObject({
+        from: activeAddress,
+        to: activeAddress,
+        amount: 0,
+        assetIndex: assetId,
+        suggestedParams,
+      });
+
+      // Step 2: Sign with Lute wallet
+      const signedTxns = await signTransactions([optInTxn]);
+
+      // Step 3: Send opt-in transaction to Algorand
+      await algodClient.sendRawTransaction(signedTxns[0]).do();
+      await algosdk.waitForConfirmation(algodClient, optInTxn.txID(), 4);
+
+      // Step 4: Call backend to transfer the NFT
+      return claimCredential(requestId, activeAddress);
+    },
+    onSuccess: (data) => {
+      toast({
+        title: '🎉 NFT Claimed!',
+        description: `Credential NFT (Asset ID: ${data.assetId}) has been transferred to your wallet.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['pending-claims'] });
+      queryClient.invalidateQueries({ queryKey: ['my-requests'] });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Claim Failed', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -89,6 +143,49 @@ export default function StudentPage() {
       </nav>
 
       <main className="container mx-auto px-4 py-8">
+        {/* Pending Claims Banner */}
+        {pendingClaims?.data?.length > 0 && (
+          <Card className="mb-8 border-2 border-amber-400 bg-amber-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-amber-800">
+                <Gift className="h-5 w-5" />
+                Pending NFT Claims ({pendingClaims.data.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-amber-700 mb-4">
+                Your credentials have been approved! Click &quot;Claim NFT&quot; to opt-in and receive your credential NFT in one step.
+              </p>
+              <div className="space-y-3">
+                {pendingClaims.data.map((claim: any) => (
+                  <div key={claim.id} className="flex items-center justify-between p-4 bg-white rounded-lg border border-amber-200">
+                    <div>
+                      <p className="font-semibold text-gray-900">{claim.degree_name}</p>
+                      <p className="text-sm text-gray-500">ID: {claim.credential_id}</p>
+                      {claim.credentials?.[0] && (
+                        <p className="text-xs text-gray-400 font-mono mt-1">
+                          Asset ID: {claim.credentials[0].nft_asset_id}
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      onClick={() => claimMutation.mutate({
+                        requestId: claim.id,
+                        assetId: claim.credentials?.[0]?.nft_asset_id,
+                      })}
+                      disabled={claimMutation.isPending}
+                      className="bg-amber-600 hover:bg-amber-700 text-white"
+                    >
+                      <Gift className="h-4 w-4 mr-2" />
+                      {claimMutation.isPending ? 'Claiming...' : 'Claim NFT'}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Upload Form */}
           <Card>
@@ -185,6 +282,12 @@ export default function StudentPage() {
                               <>
                                 <Clock className="h-4 w-4 text-yellow-600" />
                                 <span className="text-sm text-yellow-600">Pending</span>
+                              </>
+                            )}
+                            {req.status === 'MINTED' && (
+                              <>
+                                <Gift className="h-4 w-4 text-amber-600" />
+                                <span className="text-sm text-amber-600">Ready to Claim</span>
                               </>
                             )}
                             {req.status === 'APPROVED' && (
